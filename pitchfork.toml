@@ -1,0 +1,12 @@
+# fleetd — pitchfork service definition.
+# Registered via `pitchfork start` from this directory, or attached to the
+# sovereign project with `pitchfork config`.
+
+[daemons.fleetd]
+run = "exec python3 /home/toxic/fleet/fleetd/fleetd.py"
+dir = "/home/toxic/fleet/fleetd"
+mise = false
+retry = true
+ready_http = "http://127.0.0.1:25151/ping"
+auto = ["start"]
+env = { FLEETD_PORT = "25151", FLEETD_DB = "/home/toxic/fleet/fleetd/fleetd.db", FLEETD_TOKEN_FILE = "/home/toxic/.fleetd-token" }
