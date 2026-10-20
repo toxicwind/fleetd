@@ -1,6 +1,6 @@
 # fleetd — pitchfork service definition.
 # Registered via `pitchfork start` from this directory, or attached to the
-# sovereign project with `pitchfork config`.
+# estate project with `pitchfork config`.
 
 [daemons.fleetd]
 run = "exec python3 /home/toxic/fleet/fleetd/fleetd.py"
