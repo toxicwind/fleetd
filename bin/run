@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# fleetd — infra-critical daemon autonomous rig (bin/run).
+#
+# fleetd is pitchfork-supervised (`pitchfork start` reads pitchfork.toml ->
+# estate/fleetd). DO NOT spawn a second instance here (would collide on
+# 127.0.0.1:25151). This rig prints the canonical start path and, if the
+# daemon is not running, points the operator at the supervised command.
+#
+# Canonical supervised start (as root of this repo):
+#   pitchfork start            # reads pitchfork.toml -> estate/fleetd
+# Direct (dev) start:
+#   FLEETD_PORT=25151 FLEETD_DB=./fleetd.db exec python3 fleetd.py
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+echo "== fleetd run: supervised daemon (do not spawn manually) =="
+if curl -s --max-time 3 http://127.0.0.1:25151/ping >/dev/null 2>&1; then
+    echo "fleetd is ALREADY running (127.0.0.1:25151 answers /ping)."
+    echo "Use bin/check to verify supervision + health. Nothing to start."
+    exit 0
+fi
+echo "fleetd is DOWN on 127.0.0.1:25151."
+echo "Canonical supervised start (from this repo root): pitchfork start"
+echo "  (pitchfork.toml -> estate/fleetd; runs: python3 fleetd.py on :25151)"
+echo "Dev-only fallback (foreground, not supervised):"
+echo "  FLEETD_PORT=25151 FLEETD_DB=./fleetd.db python3 fleetd.py"
+exit 1

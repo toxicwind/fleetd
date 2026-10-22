@@ -1,0 +1,7 @@
+# fleetd — autonomous rig task wiring (Phase-B).
+# bin/run = supervised daemon start-path guide; bin/check = supervision+health gate.
+
+[tasks]
+run = "./bin/run"
+check = "./bin/check"
+compile = "python3 -m py_compile fleetd.py"

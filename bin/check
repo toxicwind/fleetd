@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# fleetd — infra-critical daemon autonomous rig (bin/check).
+#
+# Self-test gate (PASS / FAIL / WARN). Read-only: never starts or kills the
+# daemon. Verifies:
+#   1. Source health: fleetd.py compiles (py_compile).
+#   2. Supervision: pitchfork.toml exists and targets estate/fleetd with a
+#      ready_http probe on :25151.
+#   3. Live health: GET 127.0.0.1:25151/ping.
+# A down daemon is a clear FAIL (fleet coordination is infra-critical); the
+# rig does not auto-start it — see bin/run for the supervised start path.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+echo "== fleetd check: start =="
+pybin="$(command -v python3 2>/dev/null || echo /usr/bin/python3)"
+echo "using python: $pybin"
+
+echo "-- source compile --"
+"$pybin" -m py_compile fleetd.py || { echo "FAIL: fleetd.py does not compile"; exit 1; }
+echo "OK: fleetd.py compiles"
+
+echo "-- supervision (pitchfork.toml) --"
+if [ -f pitchfork.toml ]; then
+    if grep -q 'ready_http.*25151.*ping' pitchfork.toml; then
+        echo "supervision: pitchfork.toml present, ready_http :25151/ping configured"
+    else
+        echo "supervision: pitchfork.toml present but ready_http/ping probe missing"
+    fi
+    echo "  daemon dir in toml: $(grep -E '^\s*dir' pitchfork.toml | head -1 | sed 's/^[[:space:]]*//')"
+else
+    echo "supervision: WARN no pitchfork.toml found"
+fi
+
+echo "-- runtime supervise (pitchfork) --"
+if command -v pitchfork >/dev/null 2>&1; then
+    st="$(pitchfork list 2>/dev/null | grep -E 'estate/fleetd' || echo 'not-in-pitchfork-list')"
+    echo "pitchfork: $st"
+else
+    echo "pitchfork: CLI not on PATH (allow WARN)"
+fi
+
+echo "-- live health :25151/ping --"
+code="$(curl -s --max-time 3 -o /dev/null -w '%{http_code}' http://127.0.0.1:25151/ping 2>/dev/null || echo 000)"
+echo "live :25151/ping -> $code"
+if [ "$code" = "200" ]; then
+    echo "fleetd LIVE"
+elif [ "$code" = "000" ]; then
+    echo "FAIL: fleetd is DOWN on :25151 (infra-critical; see bin/run for supervised start)"
+    exit 1
+else
+    echo "FAIL: fleetd answered non-200 ($code)"
+    exit 1
+fi
+
+echo "== fleetd check: PASS =="
